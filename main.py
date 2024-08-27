@@ -3,7 +3,7 @@ from math import exp, sqrt
 
 from gdpc import Editor, Block, geometry, Transform
 
-from House import *
+from HouseOptimizied import *
 from networks.geometry.Point3D import Point3D
 from networks.roads_2.Road import Road
 from world_maker.data_analysis import transpose_form_heightmap
@@ -28,6 +28,7 @@ import time
 def main():
     start_time_all = time.time()
     start_time = time.time()
+    print("Making world...")
     rectangle_house_mountain, rectangle_building, skeleton_highway, skeleton_mountain, road_grid = world_maker()
     time_world_maker = time.time() - start_time
     print(f"[TIME] World_maker {time_world_maker}")
@@ -101,7 +102,7 @@ def main():
 
         building = Building(random_data["buildings"], [
             start, end], baseShape, DIRECTION.EAST)
-        building.build(editor, ["stone_bricks", "glass_pane", "glass", "cobblestone_wall", "stone_brick_stairs",
+        building.build(editor, ["stripped_oak_log", "glass_pane", "glass", "cobblestone_wall", "stone_brick_stairs",
                                 "oak_planks", "white_concrete", "cobblestone", "stone_brick_slab", "iron_bars"])
 
     time_buildings = time.time() - start_time
@@ -209,4 +210,8 @@ def set_roads(skeleton: Skeleton, origin):
 
 
 if __name__ == '__main__':
+    # print("Start")
+    # editor = Editor(buffering=True, timeout=1000)
+    # buildArea = editor.getBuildArea()
+    # print("buildArea", buildArea)
     main()

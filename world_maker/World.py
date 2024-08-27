@@ -25,19 +25,23 @@ waterBlocks = [
 
 class World:
     def __init__(self):
-
+        print("World init")
         editor = Editor(buffering=True)
+        print("Editor init")
         buildArea = editor.getBuildArea()
-
+        print("BuildArea init")
+        print(buildArea.begin[0], buildArea.begin[1], buildArea.begin[2])
         self.coordinates_min = [min(buildArea.begin[i], buildArea.last[i]) for i in range(3)]
+        print("getting min")
         self.coordinates_max = [max(buildArea.begin[i], buildArea.last[i]) for i in range(3)]
-
+        print("getting volume")
         self.length_x = self.coordinates_max[0] - self.coordinates_min[0] + 1
         self.length_y = self.coordinates_max[1] - self.coordinates_min[1] + 1
         self.length_z = self.coordinates_max[2] - self.coordinates_min[2] + 1
-
+        print("getting colume")
         self.volume = [[[None for _ in range(self.length_z)] for _ in range(self.length_y)] for _ in
                        range(self.length_x)]
+        print("Volume init")
 
     def isInVolume(self, coordinates):
         if (self.coordinates_min[0] <= coordinates[0] <= self.coordinates_max[0] and

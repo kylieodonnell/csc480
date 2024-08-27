@@ -1,0 +1,5 @@
+[TIME] Houses 5.22173285484314 < OLD 5 houses
+[TIME] Houses 13.86754822731018 < NEW 15 houses
+
+5/5 = 1
+15/13 = 1.15

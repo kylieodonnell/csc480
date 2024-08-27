@@ -8,7 +8,7 @@ from skimage import morphology
 from world_maker.data_analysis import handle_import_image
 
 
-def remove_trees(heightmap: Union[str, Image], treesmap: Union[str, Image], mask: Union[str, Image]):
+def remove_trees(heightmap: Union[str, Image.Image], treesmap: Union[str, Image.Image], mask: Union[str, Image.Image]):
     print("[Remove tree] Starting...")
     editor = Editor(buffering=True)
     build_area = editor.getBuildArea()
@@ -53,7 +53,7 @@ def remove_trees(heightmap: Union[str, Image], treesmap: Union[str, Image], mask
     print("[Remove tree] Done.")
 
 
-def smooth_terrain(heightmap: Union[str, Image], heightmap_smooth: Union[str, Image], mask: Union[str, Image]):
+def smooth_terrain(heightmap: Union[str, Image.Image], heightmap_smooth: Union[str, Image.Image], mask: Union[str, Image.Image]):
 
     print("[Smooth terrain] Starting...")
     editor = Editor(buffering=True)
