@@ -44,116 +44,117 @@ class House:
         x_min, y_min, z_min = self.coordinates_min
         x_max, y_max, z_max = self.coordinates_max
 
+        # Perimeter dimensions
         perimeter_width = x_max - x_min
         perimeter_depth = z_max - z_min
-
-        x_min += 1
-        z_min += 1
-        x_max -= 1
-        z_max -= 1
-        if x_min + 1 > x_max - 1:
-            x = np.random.randint(x_max - 1, x_min + 1)
-        else:
-            x = np.random.randint(x_min + 1, x_max - 1)
-
-        if z_min + 1 > z_max - 1:
-            z = np.random.randint(z_max - 1, z_min + 1)
-        else:
-            z = np.random.randint(z_min + 1, z_max - 1)
-
-        width = perimeter_width // 2
-        depth = perimeter_depth // 2
         height = y_max - y_min
 
-        if x + width - 1 > x_max - 1:
-            x = x_max - width - 1
-        if z + depth - 1 > z_max - 1:
-            z = z_max - depth - 1
+        # Initial room placement at the center
+        start_x = x_min + perimeter_width // 4
+        start_z = z_min + perimeter_depth // 4
+
+        initial_room = (start_x, start_z, perimeter_width // 2, perimeter_depth // 2, height)
+        if self.place_room(initial_room):
+            if self.backtrack(initial_room, 3):  # Start with 3 additional rooms
+                print("House skeleton created successfully.")
+            else:
+                print("Failed to create the house skeleton.")
+        else:
+            print("Failed to place the initial room.")
+
+    def place_room(self, room):
+        x, z, width, depth, height = room
+        if not self.is_valid_room(x, z, width, depth):
+            return False
+
+        x_plan3d = x - self.coordinates_min[0]
+        z_plan3d = z - self.coordinates_min[2]
+
+        # Place room on the grid
+        for i in range(0, width):
+            for j in range(0, depth):
+                self.editor.placeBlock((x + i, self.coordinates_min[1], z + j), self.floor)
+                self.grid3d[x_plan3d + i, 0, z_plan3d + j] = True, 1
+
+        self.skeleton.append(room)
+        return True
+
+    def is_valid_room(self, x, z, width, depth):
+        x_min = self.coordinates_min[0]
+        z_min = self.coordinates_min[2]
+        x_max = self.coordinates_max[0]
+        z_max = self.coordinates_max[2]
+
+        if x < x_min or z < z_min or x + width > x_max or z + depth > z_max:
+            return False
 
         x_plan3d = x - x_min
         z_plan3d = z - z_min
 
-        for i in range(0, width - 1):
-            for j in range(0, depth - 1):
-                self.editor.placeBlock((x + i, y_min, z + j), self.floor)
-                self.grid3d[x_plan3d + i, 0, z_plan3d + j] = True, 1
-        self.skeleton.append((x, z, width - 1, depth - 1, height))
-        print("Coordinates of the corners: ", (x, z), (x, z + depth - 1), (x + width - 1, z),
-              (x + width - 1, z + depth - 1))
+        # Check for overlap with existing rooms
+        for i in range(0, width):
+            for j in range(0, depth):
+                if self.grid3d[x_plan3d + i, 0, z_plan3d + j]['bool']:
+                    return False
+        return True
 
-        x_min -= 1
-        x_max -= 1
-        z_min += 1
-        z_max += 1
+    def backtrack(self, current_room, rooms_left):
+        if rooms_left == 0:
+            return True  # All rooms placed successfully
 
-        for _ in range(3):
-            print("Rectangle n°", _ + 1, "en cours de création")
+        x, z, width, depth, height = current_room
+        for new_width in range(5, width + 1):
+            for new_depth in range(5, depth + 1):
+                for new_x in range(x - new_width + 1, x + width):
+                    for new_z in range(z - new_depth + 1, z + depth):
+                        new_room = (new_x, new_z, new_width, new_depth, height)
 
-            for a in range(10000):
-                if depth > 7:
-                    new_depth = np.random.randint(5, depth - 2)
-                elif depth == 7:
-                    new_depth = 5
-                else:
-                    new_depth = np.random.randint(depth - 2, 5)
+                        # Pruning: Skip this branch if space is too small
+                        if not self.can_fit_additional_rooms(new_room, rooms_left):
+                            continue
 
-                if width > 7:
-                    new_width = np.random.randint(5, width - 2)
-                elif width == 7:
-                    new_width = 5
-                else:
-                    new_width = np.random.randint(width - 2, 5)
+                        if self.place_room(new_room):
+                            if self.backtrack(new_room, rooms_left - 1):
+                                return True
+                            # Undo room placement if backtracking fails
+                            self.remove_room(new_room)
 
-                if max(x_min+1, x-new_width) > min(x_max-new_width-1, x+width):
-                    new_x = np.random.randint(
-                        min(x_max - new_width - 1, x + width), max(x_min + 1, x - new_width))
-                else:
-                    new_x = np.random.randint(
-                        max(x_min + 1, x - new_width), min(x_max - new_width - 1, x + width))
+        return False  # No valid configuration found
 
-                if max(z_min+1, z-new_depth) > min(z_max-new_depth-1, z+depth):
-                    new_z = np.random.randint(
-                        min(z_max - new_depth - 1, z + depth), max(z_min + 1, z - new_depth))
-                else:
-                    new_z = np.random.randint(
-                        max(z_min + 1, z - new_depth), min(z_max - new_depth - 1, z + depth))
+    def can_fit_additional_rooms(self, current_room, rooms_left):
+        """
+        Pruning heuristic: Determine if the remaining space can fit the required number of rooms.
+        """
+        x, z, width, depth, height = current_room
+        remaining_width = self.coordinates_max[0] - (x + width)
+        remaining_depth = self.coordinates_max[2] - (z + depth)
 
-                new_x_plan3d = new_x - x_min - 1
-                new_z_plan3d = new_z - z_min + 1
+        # Simple heuristic: check if the remaining space can at least fit the minimum required rooms
+        min_room_size = 5 * 5 
+        available_space = remaining_width * remaining_depth
 
-                adjacent_blocks = 0
-                for i in range(new_x_plan3d, new_x_plan3d + new_width):
-                    for j in range(new_z_plan3d, new_z_plan3d + new_depth):
-                        if self.grid3d[i - 1, 0, j]['bool'] and self.grid3d[i - 1, 0, j]['int'] == 1 or \
-                                self.grid3d[i + 1, 0, j]['bool'] and self.grid3d[i + 1, 0, j]['int'] == 1 or \
-                                self.grid3d[i, 0, j - 1]['bool'] and self.grid3d[i, 0, j - 1]['int'] == 1 or \
-                                self.grid3d[i, 0, j + 1]['bool'] and self.grid3d[i, 0, j + 1]['int'] == 1:
-                            adjacent_blocks += 1
+        if available_space < rooms_left * min_room_size:
+            return False
 
-                if adjacent_blocks < 3:
-                    continue
+        # Further pruning: Check if the available space is reasonably usable
+        # For example, we could check if the area is too narrow to place any more rooms.
+        if remaining_width < 5 or remaining_depth < 5:
+            return False
 
-                if not np.any(
-                        self.grid3d[new_x_plan3d:new_x_plan3d + new_width, 0, new_z_plan3d:new_z_plan3d + new_depth][
-                            'bool']):
-                    new_x_plan3d = new_x - x_min
-                    new_z_plan3d = new_z - z_min
-                    for i in range(0, new_width):
-                        for j in range(0, new_depth):
-                            self.grid3d[new_x_plan3d + i, 0,
-                                        new_z_plan3d + j] = True, 2
+        return True
 
-                            if i == 0 or i == new_width - 1 or j == 0 or j == new_depth - 1:
-                                continue
-                            else:
-                                self.editor.placeBlock(
-                                    (new_x + i, y_min, new_z + j), self.floor)
+    def remove_room(self, room):
+        x, z, width, depth, height = room
+        x_plan3d = x - self.coordinates_min[0]
+        z_plan3d = z - self.coordinates_min[2]
 
-                    self.skeleton.append(
-                        (new_x, new_z, new_width, new_depth, height))
-                    break
-            else:
-                print("Failed to place rectangle after 100000 attempts.")
+        # Remove room from the grid
+        for i in range(0, width):
+            for j in range(0, depth):
+                self.grid3d[x_plan3d + i, 0, z_plan3d + j] = False, 0
+                self.editor.placeBlock((x + i, self.coordinates_min[1], z + j), Block("air"))
+
+        self.skeleton.remove(room)
 
     def delete(self):
         geometry.placeCuboid(self.editor, self.coordinates_min,

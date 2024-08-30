@@ -10,7 +10,7 @@ from skimage.morphology import skeletonize
 from networks.geometry.Point3D import Point3D
 
 
-def handle_import_image(image: Union[str, Image]) -> Image:
+def handle_import_image(image: Union[str, Image.Image]) -> Image.Image:
     if isinstance(image, str):
         return Image.open(image)
     return image
